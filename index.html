@@ -49,16 +49,84 @@
     h2 { font-size: 24px; font-weight: 500; margin-bottom: calc(var(--grid) * 2); }
     h3 { font-size: 18px; font-weight: 500; margin-bottom: calc(var(--grid) * 2); }
 
+    /* Auth Section */
+    #auth-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .auth-box {
+      background: white;
+      border-radius: 20px;
+      padding: 48px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .auth-box h1 {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .auth-box .input-group {
+      margin-bottom: 24px;
+    }
+
+    .auth-box input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--mono-800);
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .auth-box .btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Main Content */
+    #main-content {
+      display: none;
+    }
+
     .header {
       border-bottom: var(--border);
       padding-bottom: calc(var(--grid) * 4);
       margin-bottom: calc(var(--grid) * 4);
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+    }
+
+    .header-left h1 {
+      margin-bottom: 4px;
     }
 
     .header-subtitle {
       color: var(--mono-400);
       font-size: 14px;
       margin-bottom: calc(var(--grid) * 2);
+    }
+
+    .header-right {
+      text-align: right;
+    }
+
+    .user-info {
+      font-size: 12px;
+      color: var(--mono-400);
+      margin-bottom: 8px;
     }
 
     .network-selector {
@@ -80,7 +148,6 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
       transition: all 0.15s;
-      position: relative;
     }
 
     .network-btn:last-child {
@@ -378,12 +445,6 @@
       color: #92400e;
     }
 
-    .alert-info {
-      border-color: var(--testnet);
-      background: #eff6ff;
-      color: #1e40af;
-    }
-
     .modal {
       display: none;
       position: fixed;
@@ -633,28 +694,64 @@
       .network-selector { flex-direction: column; }
       .network-btn { border-right: none; border-bottom: var(--border); }
       .wallet-balance-row { flex-direction: column; align-items: flex-start; }
+      .header { flex-direction: column; }
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #invoice-content, #invoice-content * {
+        visibility: visible;
+      }
+      #invoice-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <!-- Auth Section -->
+  <div id="auth-section">
+    <div class="auth-box">
+      <h1>Login to Wallet Manager</h1>
+      <div class="input-group">
+        <input type="email" id="login-email" placeholder="Enter your email">
+      </div>
+      <button class="btn" onclick="login()">Login / Sign Up</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content" class="container">
     <div class="header">
-      <h1>SAYMAN WALLET MANAGER</h1>
-      <p class="header-subtitle">Multi-Wallet Management / Testnet & Mainnet Support / Client-Side Security</p>
+      <div class="header-left">
+        <h1>SAYMAN WALLET MANAGER</h1>
+        <p class="header-subtitle">Multi-Wallet Management / Network Separation / Client-Side Security</p>
+        
+        <div class="network-selector">
+          <button class="network-btn active" data-network="testnet" onclick="switchNetwork('testnet')">
+            Testnet
+            <span class="network-badge badge-testnet">TEST</span>
+          </button>
+          <button class="network-btn" data-network="public-testnet" onclick="switchNetwork('public-testnet')">
+            Public Testnet
+            <span class="network-badge badge-testnet">PUBLIC</span>
+          </button>
+          <button class="network-btn" data-network="mainnet" onclick="switchNetwork('mainnet')">
+            Mainnet
+            <span class="network-badge badge-mainnet">LIVE</span>
+          </button>
+        </div>
+      </div>
       
-      <div class="network-selector">
-        <button class="network-btn active" data-network="testnet" onclick="switchNetwork('testnet')">
-          Testnet
-          <span class="network-badge badge-testnet">TEST</span>
-        </button>
-        <button class="network-btn" data-network="public-testnet" onclick="switchNetwork('public-testnet')">
-          Public Testnet
-          <span class="network-badge badge-testnet">PUBLIC</span>
-        </button>
-        <button class="network-btn" data-network="mainnet" onclick="switchNetwork('mainnet')">
-          Mainnet
-          <span class="network-badge badge-mainnet">LIVE</span>
-        </button>
+      <div class="header-right">
+        <div class="user-info">
+          Logged in as: <strong id="user-email-display"></strong>
+        </div>
+        <button class="btn btn-small" onclick="logout()">Logout</button>
       </div>
     </div>
 
@@ -742,12 +839,17 @@
           <div class="faucet-icon">🚰</div>
           <h3>Get Free Test Tokens</h3>
           <p style="color: var(--mono-400); margin: calc(var(--grid) * 2) 0;">
-            Request 100 SAYM tokens for testing purposes
+            Request 100 SAYM tokens for testing purposes (Testnet only)
           </p>
           <button class="btn btn-success" onclick="claimFaucet()" style="display: inline-block;">
             Claim Faucet
           </button>
           <div id="faucet-result" style="margin-top: calc(var(--grid) * 2);"></div>
+          <div style="margin-top: 16px;">
+            <a href="https://sayman-faucet.vercel.app" target="_blank" style="color: var(--testnet); text-decoration: none; font-size: 12px;">
+              Visit Standalone Faucet Site →
+            </a>
+          </div>
         </div>
       </div>
 
@@ -813,6 +915,18 @@
       </div>
       
       <div id="wallet-details-content"></div>
+    </div>
+  </div>
+
+  <!-- Invoice Modal -->
+  <div id="invoice-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Payment Invoice</h2>
+        <span class="modal-close" onclick="closeModal('invoice')">&times;</span>
+      </div>
+      
+      <div id="invoice-content"></div>
     </div>
   </div>
 

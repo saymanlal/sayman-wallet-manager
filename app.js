@@ -1,6 +1,7 @@
 let wallets = [];
 let activeWallet = null;
 let currentNetwork = 'testnet';
+let userEmail = null;
 let isLoading = false;
 
 const networkEndpoints = {
@@ -15,13 +16,66 @@ const networkNames = {
   'mainnet': 'Sayman Mainnet'
 };
 
+const networkTypes = {
+  'testnet': 'testnet',
+  'public-testnet': 'testnet',
+  'mainnet': 'mainnet'
+};
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Wallet Manager Initialized');
+  checkAuth();
   loadWallets();
   renderWallets();
   updateStats();
 });
+
+// Auth system
+function checkAuth() {
+  userEmail = localStorage.getItem('sayman_user_email');
+  if (userEmail) {
+    document.getElementById('auth-section').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    document.getElementById('user-email-display').textContent = userEmail;
+  } else {
+    document.getElementById('auth-section').style.display = 'block';
+    document.getElementById('main-content').style.display = 'none';
+  }
+}
+
+function login() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email || !email.includes('@')) {
+    showToast('Please enter a valid email', 'error');
+    return;
+  }
+  
+  localStorage.setItem('sayman_user_email', email);
+  userEmail = email;
+  
+  // Load user-specific wallets
+  const userWallets = localStorage.getItem(`sayman_wallets_${email}`);
+  if (userWallets) {
+    wallets = JSON.parse(userWallets);
+  }
+  
+  checkAuth();
+  renderWallets();
+  showToast('Logged in successfully!', 'success');
+}
+
+function logout() {
+  if (!confirm('Logout? Your wallets are saved locally.')) return;
+  
+  localStorage.removeItem('sayman_user_email');
+  userEmail = null;
+  activeWallet = null;
+  wallets = [];
+  
+  checkAuth();
+  showToast('Logged out', 'success');
+}
 
 // Network switching
 function switchNetwork(network) {
@@ -42,13 +96,20 @@ function getApiBase() {
   return networkEndpoints[currentNetwork];
 }
 
+// Get network type (testnet or mainnet)
+function getNetworkType() {
+  return networkTypes[currentNetwork];
+}
+
 // Load wallets from localStorage
 function loadWallets() {
-  const saved = localStorage.getItem('sayman_wallets');
+  if (!userEmail) return;
+  
+  const saved = localStorage.getItem(`sayman_wallets_${userEmail}`);
   if (saved) {
     try {
       wallets = JSON.parse(saved);
-      console.log(`✅ Loaded ${wallets.length} wallets from storage`);
+      console.log(`✅ Loaded ${wallets.length} wallets for ${userEmail}`);
     } catch (error) {
       console.error('Error loading wallets:', error);
       wallets = [];
@@ -58,9 +119,11 @@ function loadWallets() {
 
 // Save wallets to localStorage
 function saveWallets() {
+  if (!userEmail) return;
+  
   try {
-    localStorage.setItem('sayman_wallets', JSON.stringify(wallets));
-    console.log(`✅ Saved ${wallets.length} wallets to storage`);
+    localStorage.setItem(`sayman_wallets_${userEmail}`, JSON.stringify(wallets));
+    console.log(`✅ Saved ${wallets.length} wallets for ${userEmail}`);
   } catch (error) {
     console.error('Error saving wallets:', error);
     showToast('Error saving wallets', 'error');
@@ -69,13 +132,15 @@ function saveWallets() {
 
 // Update stats
 function updateStats() {
-  document.getElementById('total-wallets').textContent = wallets.length;
-  document.getElementById('wallet-count').textContent = wallets.length;
+  const networkWallets = wallets.filter(w => w.networkType === getNetworkType());
+  
+  document.getElementById('total-wallets').textContent = networkWallets.length;
+  document.getElementById('wallet-count').textContent = networkWallets.length;
   
   let totalBalance = 0;
   let totalStaked = 0;
   
-  wallets.forEach(w => {
+  networkWallets.forEach(w => {
     totalBalance += w.balance || 0;
     totalStaked += w.stake || 0;
   });
@@ -84,15 +149,18 @@ function updateStats() {
   document.getElementById('total-staked').innerHTML = `${totalStaked.toFixed(2)} <span style="font-size: 14px; color: var(--mono-400);">SAYM</span>`;
 }
 
-// Render wallet list
+// Render wallet list (network-specific)
 async function renderWallets() {
   const list = document.getElementById('wallet-list');
   
-  if (wallets.length === 0) {
+  // Filter wallets by network type
+  const networkWallets = wallets.filter(w => w.networkType === getNetworkType());
+  
+  if (networkWallets.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">👛</div>
-        <p>No wallets yet. Create your first wallet to get started.</p>
+        <p>No ${getNetworkType()} wallets yet. Create your first wallet to get started.</p>
       </div>
     `;
     updateStats();
@@ -103,7 +171,7 @@ async function renderWallets() {
   
   const walletElements = [];
   
-  for (const wallet of wallets) {
+  for (const wallet of networkWallets) {
     let balance = 0;
     let stake = 0;
     
@@ -126,10 +194,15 @@ async function renderWallets() {
       card.classList.add('active');
     }
     
+    const networkBadge = wallet.networkType === 'testnet' 
+      ? '<span class="wallet-tag" style="background: #3b82f6; color: white; border: none;">TESTNET</span>'
+      : '<span class="wallet-tag" style="background: #8b5cf6; color: white; border: none;">MAINNET</span>';
+    
     card.innerHTML = `
       <div class="wallet-main">
         <div class="wallet-header">
           <div class="wallet-name">${wallet.name || 'Unnamed Wallet'}</div>
+          ${networkBadge}
           ${activeWallet && activeWallet.address === wallet.address ? '<div class="wallet-tag">ACTIVE</div>' : ''}
         </div>
         <div class="wallet-address">
@@ -156,6 +229,7 @@ async function renderWallets() {
           ${activeWallet && activeWallet.address === wallet.address ? '✓ Selected' : 'Select'}
         </button>
         <button class="btn" onclick="showWalletDetails('${wallet.address}')">Details</button>
+        <button class="btn" onclick="generateInvoice('${wallet.address}')">Invoice</button>
         <button class="btn btn-danger" onclick="deleteWallet('${wallet.address}')">Delete</button>
       </div>
     `;
@@ -170,7 +244,7 @@ async function renderWallets() {
   updateStats();
 }
 
-// Create wallet
+// Create wallet (network-specific)
 async function createWallet() {
   try {
     if (isLoading) return;
@@ -190,7 +264,8 @@ async function createWallet() {
       publicKey: wallet.publicKey,
       createdAt: Date.now(),
       balance: 0,
-      stake: 0
+      stake: 0,
+      networkType: getNetworkType() // Store network type
     };
     
     wallets.push(newWallet);
@@ -202,7 +277,7 @@ async function createWallet() {
     document.getElementById('create-result').innerHTML = `
       <div class="alert alert-success" style="margin-top: 16px;">
         <div style="flex: 1;">
-          <strong>✅ Wallet Created!</strong><br>
+          <strong>✅ ${getNetworkType().toUpperCase()} Wallet Created!</strong><br>
           <div style="margin-top: 8px; font-size: 11px;">
             Address: <code>${wallet.address.substring(0, 20)}...</code>
           </div>
@@ -220,7 +295,7 @@ async function createWallet() {
     document.getElementById('wallet-name').value = '';
     isLoading = false;
     
-    showToast('Wallet created successfully!', 'success');
+    showToast(`${getNetworkType().toUpperCase()} wallet created!`, 'success');
     
   } catch (error) {
     hideLoading();
@@ -230,7 +305,7 @@ async function createWallet() {
   }
 }
 
-// Import wallet
+// Import wallet (network-specific)
 async function importWallet() {
   try {
     if (isLoading) return;
@@ -256,10 +331,10 @@ async function importWallet() {
     const wallet = new SaymanWallet(privateKey);
     await wallet.initialize();
     
-    if (wallets.find(w => w.address === wallet.address)) {
+    if (wallets.find(w => w.address === wallet.address && w.networkType === getNetworkType())) {
       hideLoading();
       isLoading = false;
-      showToast('This wallet already exists', 'error');
+      showToast('This wallet already exists in ' + getNetworkType(), 'error');
       return;
     }
     
@@ -270,7 +345,8 @@ async function importWallet() {
       publicKey: wallet.publicKey,
       createdAt: Date.now(),
       balance: 0,
-      stake: 0
+      stake: 0,
+      networkType: getNetworkType()
     };
     
     wallets.push(newWallet);
@@ -284,7 +360,7 @@ async function importWallet() {
     document.getElementById('import-name').value = '';
     document.getElementById('import-key').value = '';
     
-    showToast('Wallet imported successfully!', 'success');
+    showToast(`${getNetworkType().toUpperCase()} wallet imported!`, 'success');
     
   } catch (error) {
     hideLoading();
@@ -333,6 +409,10 @@ async function showWalletDetails(address) {
     <div class="input-group">
       <label class="input-label">Name</label>
       <input type="text" value="${wallet.name}" readonly>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Network Type</label>
+      <input type="text" value="${wallet.networkType.toUpperCase()}" readonly>
     </div>
     <div class="input-group">
       <label class="input-label">Address</label>
@@ -395,6 +475,51 @@ function deleteWallet(address) {
   saveWallets();
   renderWallets();
   showToast('Wallet deleted', 'success');
+}
+
+// Generate Invoice
+function generateInvoice(address) {
+  const wallet = wallets.find(w => w.address === address);
+  if (!wallet) return;
+  
+  const content = document.getElementById('invoice-content');
+  const qrPlaceholder = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${wallet.address}`;
+  
+  content.innerHTML = `
+    <div style="text-align: center; padding: 32px; border: 2px solid var(--mono-800);">
+      <h2 style="margin-bottom: 24px;">Payment Invoice</h2>
+      
+      <img src="${qrPlaceholder}" alt="QR Code" style="width: 200px; height: 200px; margin: 0 auto 24px;">
+      
+      <div class="input-group">
+        <label class="input-label">Send Payment To</label>
+        <textarea readonly class="mono" style="font-size: 11px; height: 50px; text-align: center;">${wallet.address}</textarea>
+        <button class="btn btn-small" onclick="copyToClipboard('${wallet.address}', 'Address copied!')" style="margin-top: 8px;">
+          📋 Copy Address
+        </button>
+      </div>
+      
+      <div style="margin-top: 24px; display: flex; gap: 8px; justify-content: center;">
+        <button class="btn" onclick="printInvoice()">🖨️ Print</button>
+        <button class="btn" onclick="emailInvoice('${wallet.address}')">📧 Email</button>
+      </div>
+    </div>
+  `;
+  
+  openModal('invoice');
+}
+
+// Print Invoice
+function printInvoice() {
+  window.print();
+}
+
+// Email Invoice
+function emailInvoice(address) {
+  const subject = encodeURIComponent('Sayman Payment Invoice');
+  const body = encodeURIComponent(`Please send payment to this address:\n\n${address}\n\nNetwork: ${networkNames[currentNetwork]}\n\nThank you!`);
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  showToast('Opening email client...', 'success');
 }
 
 // Send transaction
@@ -479,11 +604,14 @@ async function sendTransaction() {
       document.getElementById('send-result').innerHTML = `
         <div class="alert alert-success" style="margin-top: 16px;">
           <div>
-            <strong>✅ Transaction Broadcast!</strong><br>
+            <strong>✅ Transaction Sent!</strong><br>
             <div style="margin-top: 8px; font-size: 11px;">
               TX ID: <code>${result.txId.substring(0, 16)}...</code><br>
               Gas Cost: ${result.maxGasCost} wei
             </div>
+            <button class="btn btn-small" onclick="printReceipt('${result.txId}', '${to}', ${amount})" style="margin-top: 8px;">
+              🖨️ Print Receipt
+            </button>
           </div>
         </div>
       `;
@@ -505,6 +633,56 @@ async function sendTransaction() {
     showToast(error.message, 'error');
     console.error('Send transaction error:', error);
   }
+}
+
+// Print Receipt
+function printReceipt(txId, to, amount) {
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Transaction Receipt</title>
+      <style>
+        body { font-family: Arial; padding: 40px; }
+        h1 { text-align: center; }
+        .receipt { border: 2px solid #000; padding: 20px; }
+        .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #ccc; }
+        .label { font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <div class="receipt">
+        <h1>TRANSACTION RECEIPT</h1>
+        <div class="row">
+          <span class="label">Network:</span>
+          <span>${networkNames[currentNetwork]}</span>
+        </div>
+        <div class="row">
+          <span class="label">From:</span>
+          <span>${activeWallet.address}</span>
+        </div>
+        <div class="row">
+          <span class="label">To:</span>
+          <span>${to}</span>
+        </div>
+        <div class="row">
+          <span class="label">Amount:</span>
+          <span>${amount} SAYM</span>
+        </div>
+        <div class="row">
+          <span class="label">Transaction ID:</span>
+          <span>${txId}</span>
+        </div>
+        <div class="row">
+          <span class="label">Date:</span>
+          <span>${new Date().toLocaleString()}</span>
+        </div>
+      </div>
+      <script>window.print(); window.close();</script>
+    </body>
+    </html>
+  `);
 }
 
 // Stake tokens
@@ -703,7 +881,7 @@ async function claimFaucet() {
     return;
   }
   
-  if (currentNetwork === 'mainnet') {
+  if (activeWallet.networkType === 'mainnet') {
     showToast('Faucet not available on mainnet', 'error');
     return;
   }
@@ -711,7 +889,7 @@ async function claimFaucet() {
   try {
     showLoading('Requesting faucet...');
     
-    const res = await fetch(`${getApiBase()}/faucet`, {
+    const res = await fetch('https://sayman-faucet.onrender.com/faucet', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ address: activeWallet.address })
@@ -834,13 +1012,15 @@ function exportAllWallets() {
   
   const exportData = {
     version: '1.0',
-    exportDate: new Date().toISOString(),
+    exportDate: new Date().toISO String(),
+    userEmail: userEmail,
     wallets: wallets.map(w => ({
       name: w.name,
       address: w.address,
       privateKey: w.privateKey,
       publicKey: w.publicKey,
-      createdAt: w.createdAt
+      createdAt: w.createdAt,
+      networkType: w.networkType
     }))
   };
   
