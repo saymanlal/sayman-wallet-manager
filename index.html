@@ -49,84 +49,16 @@
     h2 { font-size: 24px; font-weight: 500; margin-bottom: calc(var(--grid) * 2); }
     h3 { font-size: 18px; font-weight: 500; margin-bottom: calc(var(--grid) * 2); }
 
-    /* Auth Section */
-    #auth-section {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
-    .auth-box {
-      background: white;
-      border-radius: 20px;
-      padding: 48px;
-      max-width: 400px;
-      width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    }
-
-    .auth-box h1 {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .auth-box .input-group {
-      margin-bottom: 24px;
-    }
-
-    .auth-box input {
-      width: 100%;
-      padding: 14px 16px;
-      border: 2px solid var(--mono-800);
-      border-radius: 10px;
-      font-size: 14px;
-    }
-
-    .auth-box .btn {
-      width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    /* Main Content */
-    #main-content {
-      display: none;
-    }
-
     .header {
       border-bottom: var(--border);
       padding-bottom: calc(var(--grid) * 4);
       margin-bottom: calc(var(--grid) * 4);
-      display: flex;
-      justify-content: space-between;
-      align-items: start;
-    }
-
-    .header-left h1 {
-      margin-bottom: 4px;
     }
 
     .header-subtitle {
       color: var(--mono-400);
       font-size: 14px;
       margin-bottom: calc(var(--grid) * 2);
-    }
-
-    .header-right {
-      text-align: right;
-    }
-
-    .user-info {
-      font-size: 12px;
-      color: var(--mono-400);
-      margin-bottom: 8px;
     }
 
     .network-selector {
@@ -256,6 +188,7 @@
       align-items: center;
       gap: calc(var(--grid) * 2);
       margin-bottom: calc(var(--grid) * 2);
+      flex-wrap: wrap;
     }
 
     .wallet-name {
@@ -283,6 +216,7 @@
       display: flex;
       gap: calc(var(--grid) * 4);
       align-items: center;
+      flex-wrap: wrap;
     }
 
     .balance-item {
@@ -382,7 +316,7 @@
       color: var(--mono-400);
     }
 
-    input, textarea, select {
+    input, textarea {
       width: 100%;
       padding: calc(var(--grid) * 2);
       border: var(--border);
@@ -393,7 +327,7 @@
       transition: border-color 0.15s;
     }
 
-    input:focus, textarea:focus, select:focus {
+    input:focus, textarea:focus {
       outline: none;
       border-color: var(--mono-400);
     }
@@ -416,15 +350,15 @@
       margin-bottom: calc(var(--grid) * 3);
       padding-bottom: calc(var(--grid) * 2);
       border-bottom: var(--border);
+      flex-wrap: wrap;
+      gap: calc(var(--grid) * 2);
     }
 
     .alert {
       padding: calc(var(--grid) * 2);
       border: var(--border);
       margin-bottom: calc(var(--grid) * 2);
-      display: flex;
-      align-items: center;
-      gap: calc(var(--grid) * 2);
+      margin-top: calc(var(--grid) * 2);
     }
 
     .alert-success {
@@ -504,6 +438,7 @@
       display: flex;
       border-bottom: var(--border);
       margin-bottom: calc(var(--grid) * 3);
+      flex-wrap: wrap;
     }
 
     .tab-btn {
@@ -690,11 +625,10 @@
     @media (max-width: 768px) {
       .grid-2 { grid-template-columns: 1fr; }
       .wallet-card { grid-template-columns: 1fr; }
-      .wallet-actions { flex-direction: row; }
+      .wallet-actions { flex-direction: row; flex-wrap: wrap; }
       .network-selector { flex-direction: column; }
       .network-btn { border-right: none; border-bottom: var(--border); }
       .wallet-balance-row { flex-direction: column; align-items: flex-start; }
-      .header { flex-direction: column; }
     }
 
     @media print {
@@ -713,45 +647,24 @@
   </style>
 </head>
 <body>
-  <!-- Auth Section -->
-  <div id="auth-section">
-    <div class="auth-box">
-      <h1>Login to Wallet Manager</h1>
-      <div class="input-group">
-        <input type="email" id="login-email" placeholder="Enter your email">
-      </div>
-      <button class="btn" onclick="login()">Login / Sign Up</button>
-    </div>
-  </div>
-
-  <!-- Main Content -->
-  <div id="main-content" class="container">
+  <div class="container">
     <div class="header">
-      <div class="header-left">
-        <h1>SAYMAN WALLET MANAGER</h1>
-        <p class="header-subtitle">Multi-Wallet Management / Network Separation / Client-Side Security</p>
-        
-        <div class="network-selector">
-          <button class="network-btn active" data-network="testnet" onclick="switchNetwork('testnet')">
-            Testnet
-            <span class="network-badge badge-testnet">TEST</span>
-          </button>
-          <button class="network-btn" data-network="public-testnet" onclick="switchNetwork('public-testnet')">
-            Public Testnet
-            <span class="network-badge badge-testnet">PUBLIC</span>
-          </button>
-          <button class="network-btn" data-network="mainnet" onclick="switchNetwork('mainnet')">
-            Mainnet
-            <span class="network-badge badge-mainnet">LIVE</span>
-          </button>
-        </div>
-      </div>
+      <h1>SAYMAN WALLET MANAGER</h1>
+      <p class="header-subtitle">Multi-Wallet Management / Network Separation / Client-Side Security</p>
       
-      <div class="header-right">
-        <div class="user-info">
-          Logged in as: <strong id="user-email-display"></strong>
-        </div>
-        <button class="btn btn-small" onclick="logout()">Logout</button>
+      <div class="network-selector">
+        <button class="network-btn active" data-network="testnet" onclick="switchNetwork('testnet')">
+          Testnet
+          <span class="network-badge badge-testnet">TEST</span>
+        </button>
+        <button class="network-btn" data-network="public-testnet" onclick="switchNetwork('public-testnet')">
+          Public Testnet
+          <span class="network-badge badge-testnet">PUBLIC</span>
+        </button>
+        <button class="network-btn" data-network="mainnet" onclick="switchNetwork('mainnet')">
+          Mainnet
+          <span class="network-badge badge-mainnet">LIVE</span>
+        </button>
       </div>
     </div>
 
@@ -777,7 +690,7 @@
     <div class="section">
       <div class="section-header">
         <h2>Your Wallets (<span id="wallet-count">0</span>)</h2>
-        <div style="display: flex; gap: calc(var(--grid) * 2);">
+        <div style="display: flex; gap: calc(var(--grid) * 2); flex-wrap: wrap;">
           <button class="btn btn-primary" onclick="openModal('create')">+ Create Wallet</button>
           <button class="btn" onclick="openModal('import')">↓ Import Wallet</button>
           <button class="btn" onclick="exportAllWallets()">↑ Export All</button>
@@ -844,7 +757,7 @@
           <button class="btn btn-success" onclick="claimFaucet()" style="display: inline-block;">
             Claim Faucet
           </button>
-          <div id="faucet-result" style="margin-top: calc(var(--grid) * 2);"></div>
+          <div id="faucet-result"></div>
           <div style="margin-top: 16px;">
             <a href="https://sayman-faucet.vercel.app" target="_blank" style="color: var(--testnet); text-decoration: none; font-size: 12px;">
               Visit Standalone Faucet Site →

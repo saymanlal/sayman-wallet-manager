@@ -1,7 +1,6 @@
 let wallets = [];
 let activeWallet = null;
 let currentNetwork = 'testnet';
-let userEmail = null;
 let isLoading = false;
 
 const networkEndpoints = {
@@ -25,56 +24,42 @@ const networkTypes = {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Wallet Manager Initialized');
-  checkAuth();
   loadWallets();
   renderWallets();
   updateStats();
 });
 
-// Auth system
-function checkAuth() {
-  userEmail = localStorage.getItem('sayman_user_email');
-  if (userEmail) {
-    document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('main-content').style.display = 'block';
-    document.getElementById('user-email-display').textContent = userEmail;
-  } else {
-    document.getElementById('auth-section').style.display = 'block';
-    document.getElementById('main-content').style.display = 'none';
+function getApiBase() {
+  return networkEndpoints[currentNetwork];
+}
+
+function getNetworkType() {
+  return networkTypes[currentNetwork];
+}
+
+// Load wallets from localStorage
+function loadWallets() {
+  const saved = localStorage.getItem('sayman_wallets');
+  if (saved) {
+    try {
+      wallets = JSON.parse(saved);
+      console.log(`✅ Loaded ${wallets.length} wallets`);
+    } catch (error) {
+      console.error('Error loading wallets:', error);
+      wallets = [];
+    }
   }
 }
 
-function login() {
-  const email = document.getElementById('login-email').value.trim();
-  if (!email || !email.includes('@')) {
-    showToast('Please enter a valid email', 'error');
-    return;
+// Save wallets to localStorage
+function saveWallets() {
+  try {
+    localStorage.setItem('sayman_wallets', JSON.stringify(wallets));
+    console.log(`✅ Saved ${wallets.length} wallets`);
+  } catch (error) {
+    console.error('Error saving wallets:', error);
+    showToast('Error saving wallets', 'error');
   }
-  
-  localStorage.setItem('sayman_user_email', email);
-  userEmail = email;
-  
-  // Load user-specific wallets
-  const userWallets = localStorage.getItem(`sayman_wallets_${email}`);
-  if (userWallets) {
-    wallets = JSON.parse(userWallets);
-  }
-  
-  checkAuth();
-  renderWallets();
-  showToast('Logged in successfully!', 'success');
-}
-
-function logout() {
-  if (!confirm('Logout? Your wallets are saved locally.')) return;
-  
-  localStorage.removeItem('sayman_user_email');
-  userEmail = null;
-  activeWallet = null;
-  wallets = [];
-  
-  checkAuth();
-  showToast('Logged out', 'success');
 }
 
 // Network switching
@@ -90,44 +75,6 @@ function switchNetwork(network) {
   
   renderWallets();
   showToast(`Switched to ${networkNames[network]}`, 'success');
-}
-
-function getApiBase() {
-  return networkEndpoints[currentNetwork];
-}
-
-// Get network type (testnet or mainnet)
-function getNetworkType() {
-  return networkTypes[currentNetwork];
-}
-
-// Load wallets from localStorage
-function loadWallets() {
-  if (!userEmail) return;
-  
-  const saved = localStorage.getItem(`sayman_wallets_${userEmail}`);
-  if (saved) {
-    try {
-      wallets = JSON.parse(saved);
-      console.log(`✅ Loaded ${wallets.length} wallets for ${userEmail}`);
-    } catch (error) {
-      console.error('Error loading wallets:', error);
-      wallets = [];
-    }
-  }
-}
-
-// Save wallets to localStorage
-function saveWallets() {
-  if (!userEmail) return;
-  
-  try {
-    localStorage.setItem(`sayman_wallets_${userEmail}`, JSON.stringify(wallets));
-    console.log(`✅ Saved ${wallets.length} wallets for ${userEmail}`);
-  } catch (error) {
-    console.error('Error saving wallets:', error);
-    showToast('Error saving wallets', 'error');
-  }
 }
 
 // Update stats
@@ -149,11 +96,10 @@ function updateStats() {
   document.getElementById('total-staked').innerHTML = `${totalStaked.toFixed(2)} <span style="font-size: 14px; color: var(--mono-400);">SAYM</span>`;
 }
 
-// Render wallet list (network-specific)
+// Render wallet list
 async function renderWallets() {
   const list = document.getElementById('wallet-list');
   
-  // Filter wallets by network type
   const networkWallets = wallets.filter(w => w.networkType === getNetworkType());
   
   if (networkWallets.length === 0) {
@@ -244,7 +190,7 @@ async function renderWallets() {
   updateStats();
 }
 
-// Create wallet (network-specific)
+// Create wallet
 async function createWallet() {
   try {
     if (isLoading) return;
@@ -265,7 +211,7 @@ async function createWallet() {
       createdAt: Date.now(),
       balance: 0,
       stake: 0,
-      networkType: getNetworkType() // Store network type
+      networkType: getNetworkType()
     };
     
     wallets.push(newWallet);
@@ -275,7 +221,7 @@ async function createWallet() {
     hideLoading();
     
     document.getElementById('create-result').innerHTML = `
-      <div class="alert alert-success" style="margin-top: 16px;">
+      <div class="alert alert-success">
         <div style="flex: 1;">
           <strong>✅ ${getNetworkType().toUpperCase()} Wallet Created!</strong><br>
           <div style="margin-top: 8px; font-size: 11px;">
@@ -284,7 +230,7 @@ async function createWallet() {
           <div style="margin-top: 12px;">
             <strong style="color: var(--error);">⚠️ SAVE YOUR PRIVATE KEY:</strong>
           </div>
-          <textarea readonly style="width: 100%; margin-top: 8px; font-size: 10px; height: 60px;">${wallet.privateKey}</textarea>
+          <textarea readonly style="width: 100%; margin-top: 8px; font-size: 10px; height: 60px; font-family: 'SF Mono', monospace;">${wallet.privateKey}</textarea>
           <button class="btn btn-small" onclick="copyToClipboard('${wallet.privateKey}', 'Private key copied!')" style="margin-top: 8px;">
             📋 Copy Private Key
           </button>
@@ -305,7 +251,7 @@ async function createWallet() {
   }
 }
 
-// Import wallet (network-specific)
+// Import wallet
 async function importWallet() {
   try {
     if (isLoading) return;
@@ -417,7 +363,7 @@ async function showWalletDetails(address) {
     <div class="input-group">
       <label class="input-label">Address</label>
       <div style="display: flex; gap: 8px;">
-        <input type="text" value="${wallet.address}" readonly class="mono" style="flex: 1;">
+        <input type="text" value="${wallet.address}" readonly class="mono" style="flex: 1; font-family: 'SF Mono', monospace;">
         <button class="btn btn-small" onclick="copyToClipboard('${wallet.address}', 'Address copied!')">📋</button>
       </div>
     </div>
@@ -435,11 +381,11 @@ async function showWalletDetails(address) {
     </div>
     <div class="input-group">
       <label class="input-label">Public Key</label>
-      <textarea readonly class="mono" style="font-size: 10px; height: 80px;">${wallet.publicKey}</textarea>
+      <textarea readonly style="font-size: 10px; height: 80px; font-family: 'SF Mono', monospace;">${wallet.publicKey}</textarea>
     </div>
     <div class="input-group">
       <label class="input-label">Private Key</label>
-      <textarea readonly class="mono" style="font-size: 10px; height: 60px;">${wallet.privateKey}</textarea>
+      <textarea readonly style="font-size: 10px; height: 60px; font-family: 'SF Mono', monospace;">${wallet.privateKey}</textarea>
       <button class="btn btn-small" onclick="copyToClipboard('${wallet.privateKey}', 'Private key copied!')" style="margin-top: 8px;">
         📋 Copy Private Key
       </button>
@@ -493,7 +439,7 @@ function generateInvoice(address) {
       
       <div class="input-group">
         <label class="input-label">Send Payment To</label>
-        <textarea readonly class="mono" style="font-size: 11px; height: 50px; text-align: center;">${wallet.address}</textarea>
+        <textarea readonly style="font-size: 11px; height: 50px; text-align: center; font-family: 'SF Mono', monospace;">${wallet.address}</textarea>
         <button class="btn btn-small" onclick="copyToClipboard('${wallet.address}', 'Address copied!')" style="margin-top: 8px;">
           📋 Copy Address
         </button>
@@ -602,7 +548,7 @@ async function sendTransaction() {
     
     if (result.success) {
       document.getElementById('send-result').innerHTML = `
-        <div class="alert alert-success" style="margin-top: 16px;">
+        <div class="alert alert-success">
           <div>
             <strong>✅ Transaction Sent!</strong><br>
             <div style="margin-top: 8px; font-size: 11px;">
@@ -754,7 +700,7 @@ async function stakeTokens() {
     
     if (result.success) {
       document.getElementById('stake-result').innerHTML = `
-        <div class="alert alert-success" style="margin-top: 16px;">
+        <div class="alert alert-success">
           <div>
             <strong>✅ Stake Transaction Broadcast!</strong><br>
             <div style="margin-top: 8px; font-size: 11px;">
@@ -848,7 +794,7 @@ async function unstakeTokens() {
     
     if (result.success) {
       document.getElementById('stake-result').innerHTML = `
-        <div class="alert alert-success" style="margin-top: 16px;">
+        <div class="alert alert-success">
           <div>
             <strong>✅ Unstake Transaction Broadcast!</strong><br>
             <div style="margin-top: 8px; font-size: 11px;">
@@ -1012,8 +958,7 @@ function exportAllWallets() {
   
   const exportData = {
     version: '1.0',
-    exportDate: new Date().toISO String(),
-    userEmail: userEmail,
+    exportDate: new Date().toISOString(),
     wallets: wallets.map(w => ({
       name: w.name,
       address: w.address,
