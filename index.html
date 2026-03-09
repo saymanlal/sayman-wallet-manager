@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sayman Wallet Manager</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/elliptic/6.5.4/elliptic.min.js"></script>
+  <style>
+    :root {
+      --mono-000: #000000;
+      --mono-100: #1a1a1a;
+      --mono-200: #333333;
+      --mono-400: #666666;
+      --mono-800: #cccccc;
+      --mono-900: #e6e6e6;
+      --mono-950: #f5f5f5;
+      --mono-1000: #ffffff;
+      --grid: 8px;
+      --border: 1px solid var(--mono-800);
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--mono-100);
+      background: var(--mono-1000);
+      letter-spacing: -0.01em;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: calc(var(--grid) * 4);
+    }
+
+    h1 { font-size: 32px; font-weight: 500; margin-bottom: calc(var(--grid) * 3); }
+    h2 { font-size: 24px; font-weight: 500; margin-bottom: calc(var(--grid) * 2); }
+    h3 { font-size: 18px; font-weight: 500; margin-bottom: calc(var(--grid) * 2); }
+
+    .header {
+      border-bottom: var(--border);
+      padding-bottom: calc(var(--grid) * 4);
+      margin-bottom: calc(var(--grid) * 4);
+    }
+
+    .network-selector {
+      display: flex;
+      gap: calc(var(--grid) * 2);
+      margin-bottom: calc(var(--grid) * 4);
+      border-bottom: var(--border);
+      padding-bottom: calc(var(--grid) * 2);
+    }
+
+    .network-btn {
+      padding: calc(var(--grid) * 2) calc(var(--grid) * 3);
+      border: var(--border);
+      background: var(--mono-1000);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      transition: all 0.15s;
+    }
+
+    .network-btn.active {
+      background: var(--mono-100);
+      color: var(--mono-1000);
+    }
+
+    .wallet-list {
+      display: grid;
+      gap: calc(var(--grid) * 2);
+      margin-bottom: calc(var(--grid) * 4);
+    }
+
+    .wallet-card {
+      border: var(--border);
+      padding: calc(var(--grid) * 3);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: calc(var(--grid) * 2);
+      align-items: center;
+    }
+
+    .wallet-card:hover {
+      background: var(--mono-950);
+    }
+
+    .wallet-card.active {
+      border-color: var(--mono-100);
+      background: var(--mono-950);
+    }
+
+    .wallet-info {
+      display: grid;
+      gap: calc(var(--grid) * 1);
+    }
+
+    .wallet-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--mono-400);
+    }
+
+    .wallet-address {
+      font-family: 'SF Mono', monospace;
+      font-size: 13px;
+      color: var(--mono-100);
+    }
+
+    .wallet-balance {
+      font-size: 20px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .wallet-actions {
+      display: flex;
+      gap: calc(var(--grid) * 1);
+    }
+
+    .btn {
+      padding: calc(var(--grid) * 2) calc(var(--grid) * 3);
+      border: var(--border);
+      background: var(--mono-1000);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      transition: all 0.15s;
+    }
+
+    .btn:hover {
+      background: var(--mono-100);
+      color: var(--mono-1000);
+    }
+
+    .btn-primary {
+      background: var(--mono-100);
+      color: var(--mono-1000);
+    }
+
+    .btn-danger {
+      border-color: var(--error);
+      color: var(--error);
+    }
+
+    .btn-danger:hover {
+      background: var(--error);
+      color: var(--mono-1000);
+    }
+
+    .input-group {
+      margin-bottom: calc(var(--grid) * 3);
+    }
+
+    .input-label {
+      display: block;
+      margin-bottom: calc(var(--grid) * 1);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--mono-400);
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: calc(var(--grid) * 2);
+      border: var(--border);
+      background: var(--mono-1000);
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--mono-100);
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--mono-400);
+    }
+
+    textarea {
+      min-height: 100px;
+      font-family: 'SF Mono', monospace;
+      font-size: 12px;
+    }
+
+    .section {
+      margin-bottom: calc(var(--grid) * 6);
+    }
+
+    .alert {
+      padding: calc(var(--grid) * 2);
+      border: var(--border);
+      margin-bottom: calc(var(--grid) * 2);
+    }
+
+    .alert-success {
+      border-color: var(--success);
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    .alert-error {
+      border-color: var(--error);
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .alert-warning {
+      border-color: var(--warning);
+      background: #fffbeb;
+      color: #92400e;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--mono-1000);
+      border: var(--border);
+      padding: calc(var(--grid) * 4);
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: calc(var(--grid) * 3);
+      padding-bottom: calc(var(--grid) * 2);
+      border-bottom: var(--border);
+    }
+
+    .modal-close {
+      cursor: pointer;
+      font-size: 24px;
+      color: var(--mono-400);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: calc(var(--grid) * 2);
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .wallet-card { grid-template-columns: 1fr; }
+      .wallet-actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>SAYMAN WALLET MANAGER</h1>
+      <p style="color: var(--mono-400);">Multi-Wallet Management / Testnet & Mainnet Support</p>
+    </div>
+
+    <div class="network-selector">
+      <button class="network-btn active" onclick="switchNetwork('testnet')">Testnet</button>
+      <button class="network-btn" onclick="switchNetwork('public-testnet')">Public Testnet</button>
+      <button class="network-btn" onclick="switchNetwork('mainnet')">Mainnet</button>
+    </div>
+
+    <div class="section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: calc(var(--grid) * 3);">
+        <h2>Your Wallets (<span id="wallet-count">0</span>)</h2>
+        <div style="display: flex; gap: calc(var(--grid) * 2);">
+          <button class="btn btn-primary" onclick="openModal('create')">+ Create Wallet</button>
+          <button class="btn" onclick="openModal('import')">Import Wallet</button>
+        </div>
+      </div>
+
+      <div id="wallet-list" class="wallet-list">
+        <div style="text-align: center; color: var(--mono-400); padding: calc(var(--grid) * 8);">
+          No wallets yet. Create one to get started.
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="active-wallet-section" style="display: none;">
+      <h2>Active Wallet Operations</h2>
+      
+      <div class="grid-2">
+        <div>
+          <h3>Send Transaction</h3>
+          <div class="input-group">
+            <label class="input-label">To Address</label>
+            <input type="text" id="send-to" placeholder="Recipient address">
+          </div>
+          <div class="input-group">
+            <label class="input-label">Amount (SAYM)</label>
+            <input type="number" id="send-amount" placeholder="0.00" step="0.01">
+          </div>
+          <button class="btn btn-primary" onclick="sendTransaction()">Send Transaction</button>
+          <div id="send-result"></div>
+        </div>
+
+        <div>
+          <h3>Stake Tokens</h3>
+          <div class="input-group">
+            <label class="input-label">Amount (SAYM)</label>
+            <input type="number" id="stake-amount" placeholder="Minimum stake required" step="0.01">
+          </div>
+          <button class="btn btn-primary" onclick="stakeTokens()">Stake</button>
+          <button class="btn" onclick="unstakeTokens()" style="margin-left: calc(var(--grid) * 1);">Unstake</button>
+          <div id="stake-result"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Wallet Modal -->
+  <div id="create-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Create New Wallet</h2>
+        <span class="modal-close" onclick="closeModal('create')">&times;</span>
+      </div>
+      
+      <div class="input-group">
+        <label class="input-label">Wallet Name (Optional)</label>
+        <input type="text" id="wallet-name" placeholder="My Wallet">
+      </div>
+
+      <button class="btn btn-primary" onclick="createWallet()">Generate Wallet</button>
+      
+      <div id="create-result"></div>
+    </div>
+  </div>
+
+  <!-- Import Wallet Modal -->
+  <div id="import-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Import Wallet</h2>
+        <span class="modal-close" onclick="closeModal('import')">&times;</span>
+      </div>
+      
+      <div class="input-group">
+        <label class="input-label">Wallet Name (Optional)</label>
+        <input type="text" id="import-name" placeholder="Imported Wallet">
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Private Key</label>
+        <textarea id="import-key" placeholder="Enter your private key"></textarea>
+      </div>
+
+      <button class="btn btn-primary" onclick="importWallet()">Import Wallet</button>
+      
+      <div id="import-result"></div>
+    </div>
+  </div>
+
+  <!-- Wallet Details Modal -->
+  <div id="details-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Wallet Details</h2>
+        <span class="modal-close" onclick="closeModal('details')">&times;</span>
+      </div>
+      
+      <div id="wallet-details-content"></div>
+    </div>
+  </div>
+
+  <script src="../frontend/crypto-client.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

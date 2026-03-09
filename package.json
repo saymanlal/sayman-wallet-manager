@@ -1,0 +1,9 @@
+{
+    "name": "sayman-wallet-manager",
+    "version": "1.0.0",
+    "description": "Multi-wallet manager for Sayman Blockchain",
+    "main": "index.html",
+    "scripts": {
+      "start": "npx http-server -p 8080"
+    }
+  }
