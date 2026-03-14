@@ -21,7 +21,13 @@ const networkTypes = {
   'mainnet': 'mainnet'
 };
 
-// Initialize
+const faucetEndpoints = {
+  'testnet': 'https://sayman-faucet.onrender.com/faucet',
+  'public-testnet': 'https://sayman-faucet.onrender.com/faucet',
+  'mainnet': null
+};
+
+// Rest of file stays the same...
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Wallet Manager Initialized');
   loadWallets();
@@ -832,10 +838,17 @@ async function claimFaucet() {
     return;
   }
   
+  const faucetUrl = faucetEndpoints[currentNetwork];
+  
+  if (!faucetUrl) {
+    showToast('Faucet not available for this network', 'error');
+    return;
+  }
+  
   try {
     showLoading('Requesting faucet...');
     
-    const res = await fetch('https://sayman-faucet.onrender.com/faucet', {
+    const res = await fetch(faucetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ address: activeWallet.address })
@@ -850,15 +863,17 @@ async function claimFaucet() {
         <div class="alert alert-success">
           <div>
             <strong>✅ ${data.amount || 100} SAYM credited!</strong><br>
-            <small>Pending in mempool, will confirm in next block</small>
+            <small>TX ID: ${data.txId ? data.txId.substring(0, 16) + '...' : 'Pending'}</small><br>
+            <small>Check your balance in a few seconds</small>
           </div>
         </div>
       `;
       
-      showToast('Faucet claimed!', 'success');
+      showToast('Faucet claimed successfully!', 'success');
       
       setTimeout(() => {
         renderWallets();
+        loadTransactionHistory();
       }, 3000);
     } else {
       document.getElementById('faucet-result').innerHTML = `
